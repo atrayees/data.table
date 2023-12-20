@@ -609,5 +609,6 @@
 
 15. Thanks to @ssh352, Václav Tlapák, Cole Miller, András Svraka and Toby Dylan Hocking for reporting and bisecting a significant performance regression in dev. This was fixed before release thanks to a PR by Jan Gorecki, [#5463](https://github.com/Rdatatable/data.table/pull/5463). 
 
+16. data.table now depends on R 3.2.0 (2015) instead of 3.1.0 (2014). 1.16.0 will likely move to R 3.3.0 (2016). Recent versions of R have good features that we would gradually like to incorporate, and see next to no usage of these very old versions of R.
 
 # data.table v1.14.10 (Dec 2023) back to v1.10.0 (Dec 2016) has been moved to [NEWS.1.md](https://github.com/Rdatatable/data.table/blob/master/NEWS.1.md)

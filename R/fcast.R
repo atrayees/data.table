@@ -209,7 +209,7 @@ dcast.data.table = function(data, formula, fun.aggregate = NULL, sep = "_", ...,
       .Call(Csetlistelt, mapunique, 2L, seq_len(nrow(rhs_)))
       lhs = lhs_; rhs = rhs_
     }
-    maplen = vapply_1i(mapunique, length)
+    maplen = lengths(mapunique)
     idx = do.call("CJ", mapunique)[map, 'I' := .I][["I"]] # TO DO: move this to C and avoid materialising the Cross Join.
     ans = .Call(Cfcast, lhs, val, maplen[[1L]], maplen[[2L]], idx, fill, fill.default, is.null(fun.call))
     allcols = do.call("paste", c(rhs, sep=sep))
