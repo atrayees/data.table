@@ -14918,7 +14918,7 @@ test(2041.2, DT[, median(time), by=g], DT[c(2,5),.(g=g, V1=time)])
 # They could run in level 1 with level 2 off, but output= would need to be changed and there's no need.
 test(2042.1, DT[ , as.character(mean(date)), by=g, verbose=TRUE ],
              data.table(g=c("a","b"), V1=c("2018-01-04","2018-01-21")),
-     output=msg<-"GForce is on, left j unchanged.*Old mean optimization is on, left j unchanged")
+     output=msg<-"GForce is on, but not activated.*Old mean optimization is on, left j unchanged")
 # Since %b is e.g. "janv." in LC_TIME=fr_FR.UTF-8 locale, we need to
 # have the target/y value in these tests depend on the locale as well, #3450.
 Jan.2018 = format(strptime("2018-01-01", "%Y-%m-%d"), "%b-%Y")
@@ -18245,3 +18245,26 @@ test(2243.35, dt[, min(y,  na.rm=as.logical(j)),   g, verbose=TRUE], data.table(
 test(2243.36, dt[, max(y,  na.rm=as.logical(j)),   g, verbose=TRUE], data.table(g=c(1L,2L), V1=c(3L,4L)),        output="GForce FALSE")
 test(2243.37, dt[, var(y,  na.rm=as.logical(j)),   g, verbose=TRUE], data.table(g=c(1L,2L), V1=c(2,2)),          output="GForce FALSE")
 test(2243.38, dt[, sd(y,   na.rm=as.logical(j)),   g, verbose=TRUE], data.table(g=c(1L,2L), V1=c(sqrt(c(2,2)))), output="GForce FALSE")
+
+# revdeps
+dt = data.table(x = c(2,2,1,1), y = 1:4, z=letters[1:4])
+i=c(1,2)
+j=1L
+old = options(datatable.optimize=1L)
+test(2243.41, dt[, .I[TRUE], x]$V1, 1:4)
+test(2243.42, dt[, z[y], x], data.table(x=c(2,2,1,1), V1=c("a","b",NA,NA)))
+options(datatable.optimize=2L, datatable.verbose=TRUE)
+test(2243.51, dt[, .I[TRUE], x]$V1, 1:4, output="GForce FALSE")
+test(2243.52, dt[, z[y], x], data.table(x=c(2,2,1,1), V1=c("a","b",NA,NA)), output="GForce FALSE")
+test(2243.53, dt[, .I[1], x]$V1, c(1L, 3L), output="GForce TRUE")
+test(2243.54, dt[, .I[j], x]$V1, c(1L, 3L), output="GForce TRUE")
+test(2243.55, dt[, .I[i], x]$V1, 1:4, output="GForce FALSE")
+test(2243.56, dt[, .I[1:2], x]$V1, 1:4, output="GForce FALSE")
+options(old)
+
+DT = data.table(1)
+test(2244.1, DT[, `:=`(a=1, )], error="`:=`.*Did you forget a trailing comma\\?")
+test(2244.2, DT[, let(a=1, )], error="let.*Did you forget a trailing comma\\?")
+test(2244.3, DT[, `:=`(a=1, , b=2)], error="`:=`.*\\[2\\]")
+test(2244.4, DT[, let(a=1, , b=2)], error="let.*\\[2\\]")
+test(2244.5, DT[, `:=`(a=1, , b=2, )], error="[2, 4]")

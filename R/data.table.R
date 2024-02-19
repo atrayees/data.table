@@ -1007,7 +1007,7 @@ replace_dot_alias = function(e) {
           } else negate_sdcols = FALSE
           # fix for #1216, make sure the parentheses are peeled from expr of the form (((1:4)))
           while(colsub %iscall% "(") colsub = as.list(colsub)[[-1L]]
-          if (colsub %iscall% ':' && length(colsub)==3L && !is.call(colsub[[2L]]) && !is.call(colsub[[3]])) {
+          if (colsub %iscall% ':' && length(colsub)==3L && !is.call(colsub[[2L]]) && !is.call(colsub[[3L]])) {
             # .SDcols is of the format a:b, ensure none of : arguments is a call data.table(V1=-1L, V2=-2L, V3=-3L)[,.SD,.SDcols=-V2:-V1] #4231
             .SDcols = eval(colsub, setattr(as.list(seq_along(x)), 'names', names_x), parent.frame())
           } else {
@@ -1120,7 +1120,16 @@ replace_dot_alias = function(e) {
         } else {
           # `:=`(c2=1L,c3=2L,...)
           lhs = names(jsub)[-1L]
-          if (any(lhs=="")) stopf("In %s(col1=val1, col2=val2, ...) form, all arguments must be named.", if (root == "let") "let" else "`:=`")
+          if (!all(named_idx <- nzchar(lhs))) {
+            # friendly error for common case: trailing terminal comma
+            n_lhs = length(lhs)
+            root_name <- if (root == "let") "let" else "`:=`"
+            if (!named_idx[n_lhs] && all(named_idx[-n_lhs])) {
+              stopf("In %s(col1=val1, col2=val2, ...) form, all arguments must be named, but the last argument has no name. Did you forget a trailing comma?", root_name)
+            } else {
+              stopf("In %s(col1=val1, col2=val2, ...) form, all arguments must be named, but these arguments lack names: %s.", root_name, brackify(which(!named_idx)))
+            }
+          }
           names(jsub)=""
           jsub[[1L]]=as.name("list")
         }
@@ -1726,7 +1735,7 @@ replace_dot_alias = function(e) {
         GForce = FALSE
         if ( ((is.name(jsub) && jsub==".N") || (jsub %iscall% 'list' && length(jsub)==2L && jsub[[2L]]==".N")) && !length(lhs) ) {
           GForce = TRUE
-          if (verbose) catf("GForce optimized j to '%s'\n",deparse(jsub, width.cutoff=200L, nlines=1L))
+          if (verbose) catf("GForce optimized j to '%s' (see ?GForce)\n",deparse(jsub, width.cutoff=200L, nlines=1L))
         }
       } else if (length(lhs) && is.symbol(jsub)) { # turn off GForce for the combination of := and .N
         GForce = FALSE
@@ -1760,7 +1769,7 @@ replace_dot_alias = function(e) {
           length(q) == 3L &&
             is_constantish(q[[3L]], check_singleton = TRUE) &&
             (q[[1L]] != "[[" || eval(call('is.atomic', q[[2L]]), envir=x)) &&
-            eval(q[[3L]], parent.frame(3L)) > 0L
+            !(as.character(q[[3L]]) %chin% names_x) && is.numeric(q3<-eval(q[[3L]], parent.frame(3L))) && length(q3)==1L && q3>0L
         }
         .gweighted.mean_ok = function(q, x) { #3977
           q = match.call(gweighted.mean, q)
@@ -1811,8 +1820,8 @@ replace_dot_alias = function(e) {
             if (length(jsub) == 2L && jsub[[1L]] %chin% c("head", "tail")) jsub[["n"]] = 6L
             jsub = gforce_jsub(jsub, names_x)
           }
-          if (verbose) catf("GForce optimized j to '%s'\n", deparse(jsub, width.cutoff=200L, nlines=1L))
-        } else if (verbose) catf("GForce is on, left j unchanged\n");
+          if (verbose) catf("GForce optimized j to '%s' (see ?GForce)\n", deparse(jsub, width.cutoff=200L, nlines=1L))
+        } else if (verbose) catf("GForce is on, but not activated for this query; left j unchanged (see ?GForce)\n");
       }
     }
     if (!GForce && !is.name(jsub)) {
@@ -2726,7 +2735,7 @@ setcolorder = function(x, neworder=key(x), before=NULL, after=NULL)  # before/af
     stopf("x has some duplicated column name(s): %s. Please remove or rename the duplicate(s) and try again.", brackify(unique(names(x)[duplicated(names(x))])))
   if (!is.null(before) && !is.null(after))
     stopf("Provide either before= or after= but not both")
-  if (length(before)>1 || length(after)>1)
+  if (length(before)>1L || length(after)>1L)
     stopf("before=/after= accept a single column name or number, not more than one")
   neworder = colnamesInt(x, neworder, check_dups=FALSE)  # dups are now checked inside Csetcolorder below
   if (length(before))
